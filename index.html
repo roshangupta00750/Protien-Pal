@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protein Pal - Track Your Intake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        /* Style for date input icon */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(0.5);
+        }
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+    </style>
+    <script>
+        // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
+
+    <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 hidden">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 id="greeting" class="text-3xl font-bold text-gray-900 dark:text-gray-100">Protein Pal</h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-1">Your daily companion for hitting protein goals.</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                 <button id="logout-btn" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+                <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 10.607a1 1 0 011.414 0l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Dashboard & Goal -->
+            <div class="lg:col-span-1 space-y-8">
+                <!-- Daily Goal Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h2 id="daily-goal-title" class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Daily Goal</h2>
+                    <div class="relative flex justify-center items-center w-48 h-48 mx-auto">
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <!-- Background circle -->
+                            <circle class="text-gray-200 dark:text-gray-700" stroke-width="10" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                            <!-- Progress circle -->
+                            <circle id="progress-circle" class="progress-ring-circle text-emerald-500" stroke-width="10" stroke-linecap="round" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                        </svg>
+                        <div class="absolute flex flex-col items-center">
+                            <span id="protein-today" class="text-3xl font-bold text-gray-900 dark:text-gray-100">0</span>
+                            <span class="text-gray-500 dark:text-gray-400">/ <span id="protein-goal-display">100</span>g</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <label for="protein-goal" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Set Your Goal (grams)</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="number" id="protein-goal" class="flex-1 block w-full rounded-none rounded-l-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm px-3 py-2" placeholder="150">
+                            <button id="set-goal-btn" class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-md bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
+                                Set
+                            </button>
+                        </div>
+                    </div>
+                     <div id="motivation-quote" class="mt-4 text-center text-gray-600 dark:text-gray-400 italic p-4 bg-gray-100 dark:bg-gray-800/50 rounded-lg hidden"></div>
+                </div>
+
+                <!-- Food Entry Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Log Your Meal</h2>
+                    <form id="food-form" class="space-y-4">
+                        <div>
+                            <label for="food-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                            <input type="date" id="food-date" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
+                        </div>
+                        <div>
+                            <label for="food-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Food Name</label>
+                            <input type="text" id="food-name" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" placeholder="e.g., Grilled Chicken">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="food-quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label>
+                                <input type="text" id="food-quantity" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" placeholder="e.g., 150g">
+                            </div>
+                            <div>
+                                <label for="food-protein" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Protein (g)</label>
+                                <input type="number" id="food-protein" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200" placeholder="e.g., 30">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="meal-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Meal Type</label>
+                            <select id="meal-type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md">
+                                <option>Breakfast</option>
+                                <option>Lunch</option>
+                                <option>Dinner</option>
+                                <option>Oats</option>
+                                <option>Protein Shake</option>
+                                <option>Snacks</option>
+                                <option>Drinks</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150">
+                            Add Meal
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Logs & History -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Daily Log Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 id="daily-log-title" class="text-xl font-semibold text-gray-900 dark:text-gray-100">Today's Log</h2>
+                        <input type="date" id="view-date" class="border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
+                    </div>
+                    <div id="daily-log-list" class="space-y-3">
+                        <p id="empty-log-message" class="text-center text-gray-500 dark:text-gray-400 py-4">No meals logged yet for this day.</p>
+                    </div>
+                </div>
+
+                <!-- History Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Weekly Progress</h2>
+                         <div class="flex space-x-2">
+                             <button id="prev-week" class="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">&larr;</button>
+                             <span id="week-display" class="text-sm font-medium text-gray-600 dark:text-gray-400 self-center"></span>
+                             <button id="next-week" class="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">&rarr;</button>
+                         </div>
+                    </div>
+                    <canvas id="weekly-chart"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Login/Register Modal -->
+    <div id="auth-container" class="fixed inset-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center z-50">
+      <div class="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100">
+                Welcome to Protein Pal
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                Sign in or create an account to continue
+            </p>
+        </div>
+        <form class="mt-8 space-y-6">
+            <div class="rounded-md shadow-sm -space-y-px">
+                <div>
+                    <label for="username" class="sr-only">Username</label>
+                    <input id="username" name="username" type="text" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 rounded-t-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 focus:z-10 sm:text-sm" placeholder="Username">
+                </div>
+                <div>
+                    <label for="password" class="sr-only">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 rounded-b-md focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 focus:z-10 sm:text-sm" placeholder="Password (min. 6 characters)">
+                </div>
+            </div>
+
+            <p id="auth-error" class="text-sm text-red-500 text-center"></p>
+
+            <div class="flex items-center justify-between space-x-4">
+                <button id="login-btn" type="button" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                    Login
+                </button>
+                <button id="register-btn" type="button" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:bg-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-700">
+                    Register
+                </button>
+            </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- Modal for editing a food item -->
+    <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-black/50 overflow-y-auto h-full w-full hidden z-50">
+      <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white dark:bg-gray-800 dark:border-gray-700">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Edit Meal</h3>
+            <div class="mt-2 px-7 py-3">
+                <form id="edit-food-form" class="space-y-4 text-left">
+                    <input type="hidden" id="edit-food-id">
+                     <div>
+                        <label for="edit-food-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                        <input type="date" id="edit-food-date" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
+                    </div>
+                    <div>
+                        <label for="edit-food-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Food Name</label>
+                        <input type="text" id="edit-food-name" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="edit-food-quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label>
+                            <input type="text" id="edit-food-quantity" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
+                        </div>
+                        <div>
+                            <label for="edit-food-protein" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Protein (g)</label>
+                            <input type="number" id="edit-food-protein" required class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-gray-200">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="edit-meal-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Meal Type</label>
+                        <select id="edit-meal-type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+                            <option>Breakfast</option> <option>Lunch</option> <option>Dinner</option> <option>Oats</option> <option>Protein Shake</option> <option>Snacks</option> <option>Drinks</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="save-edit-btn" class="px-4 py-2 bg-emerald-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-300">
+                    Save Changes
+                </button>
+                 <button id="cancel-edit-btn" class="mt-2 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                    Cancel
+                </button>
+            </div>
+        </div>
+      </div>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- Firebase Config ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyBlikIaeLyEiytOfSktoftidbA4Pk7EMd8",
+          authDomain: "protein-pal-app.firebaseapp.com",
+          projectId: "protein-pal-app",
+          storageBucket: "protein-pal-app.firebasestorage.app",
+          messagingSenderId: "216238461589",
+          appId: "1:216238461589:web:7d00c3342c965ba3db819c",
+          measurementId: "G-D2D1GK2RC9"
+        };
+
+        // --- Initialize Firebase ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- Global State ---
+        let userId = null;
+        let proteinGoal = 100;
+        let dailyLogs = [];
+        let weeklyChart = null;
+        let currentViewDate = new Date(); // Date currently being viewed
+        let unsubscribes = [];
+
+        const motivationQuotes = [
+            "You didn't come this far to only come this far. Keep going!", "It does not matter how slowly you go as long as you do not stop.", "The secret of getting ahead is getting started.", "Why did the protein shake break up with the blender? It said 'You're just mixing things up!'", "What do you call a cow with no legs? Ground beef. Now go get some protein!", "Success is the sum of small efforts, repeated day in and day out.", "Don't watch the clock; do what it does. Keep going.", "Even a pizza is a circle, but you're trying to build a pyramid. One brick at a time!", "The only bad workout is the one that didn't happen.", "Strive for progress, not perfection.", "Your body can stand almost anything. It’s your mind that you have to convince.", "Sweat is just fat crying.", "Why did the tomato turn red? Because it saw the salad dressing!", "My favorite exercise is a cross between a lunge and a crunch... I call it lunch.", "Fitness is like marriage. You can't cheat on it and expect it to work.", "Excuses don't burn calories.", "Be stronger than your strongest excuse.", "I'm in a committed relationship with my gym. We're working out.", "Sore today, strong tomorrow.", "What's a muscle's favorite pickup line? 'Do you believe in love at first set?'", "Push yourself because no one else is going to do it for you.", "The body achieves what the mind believes.", "Wake up with determination. Go to bed with satisfaction.", "I lift weights because I like eating. It's a simple transaction.", "Results happen over time, not overnight. Work hard, stay consistent, and be patient.", "A little progress each day adds up to big results.", "Don't limit your challenges. Challenge your limits.", "I'm not telling you it's going to be easy, I'm telling you it's going to be worth it.", "Why don't eggs tell jokes? They'd crack each other up.", "Life is short. Lift heavy things.", "The pain you feel today will be the strength you feel tomorrow.", "Obsessed is a word the lazy use to describe the dedicated.", "Eat clean, train dirty.", "If you're tired of starting over, stop giving up.", "My favorite machine at the gym is the vending machine.", "Discipline is just choosing between what you want now and what you want most.", "It's a slow process, but quitting won't speed it up.",
+        ];
+
+        // --- UI Elements ---
+        const appEl = document.getElementById('app');
+        const authContainer = document.getElementById('auth-container');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const authErrorEl = document.getElementById('auth-error');
+
+        const proteinTodayEl = document.getElementById('protein-today');
+        const proteinGoalDisplayEl = document.getElementById('protein-goal-display');
+        const proteinGoalInput = document.getElementById('protein-goal');
+        const setGoalBtn = document.getElementById('set-goal-btn');
+        const progressCircle = document.getElementById('progress-circle');
+        const dailyLogListEl = document.getElementById('daily-log-list');
+        const dailyLogTitleEl = document.getElementById('daily-log-title');
+        const dailyGoalTitleEl = document.getElementById('daily-goal-title');
+        const foodForm = document.getElementById('food-form');
+        const foodDateInput = document.getElementById('food-date');
+        const emptyLogMessage = document.getElementById('empty-log-message');
+        const motivationQuoteEl = document.getElementById('motivation-quote');
+        const weekDisplayEl = document.getElementById('week-display');
+        const prevWeekBtn = document.getElementById('prev-week');
+        const nextWeekBtn = document.getElementById('next-week');
+        const viewDateInput = document.getElementById('view-date');
+
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+        const greetingEl = document.getElementById('greeting');
+        const editModal = document.getElementById('edit-modal');
+        const editFoodForm = document.getElementById('edit-food-form');
+        const editFoodDateInput = document.getElementById('edit-food-date');
+        const saveEditBtn = document.getElementById('save-edit-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        
+        // --- Utility Functions ---
+        const toYYYYMMDD = (date) => date.toISOString().split('T')[0];
+
+        // --- Authentication Logic ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                userId = user.uid;
+                authContainer.classList.add('hidden');
+                appEl.classList.remove('hidden');
+                
+                // Reset view to today on login
+                currentViewDate = new Date();
+                viewDateInput.value = toYYYYMMDD(currentViewDate);
+                foodDateInput.value = toYYYYMMDD(currentViewDate);
+                
+                loadUserData();
+            } else {
+                userId = null;
+                authContainer.classList.remove('hidden');
+                appEl.classList.add('hidden');
+                cleanupListeners();
+            }
+        });
+
+        async function handleRegister() {
+            const username = usernameInput.value.trim().toLowerCase();
+            const password = passwordInput.value;
+            authErrorEl.textContent = '';
+
+            if (username.length < 3 || password.length < 6) {
+                authErrorEl.textContent = 'Username must be > 2 chars, password > 5.';
+                return;
+            }
+
+            const usernameRef = doc(db, 'usernames', username);
+            const usernameSnap = await getDoc(usernameRef);
+
+            if (usernameSnap.exists()) {
+                authErrorEl.textContent = 'Username is already taken.';
+                return;
+            }
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, `${username}@proteinpals.app`, password);
+                const user = userCredential.user;
+
+                await setDoc(usernameRef, { uid: user.uid });
+                const userProfileRef = doc(db, 'users', user.uid);
+                await setDoc(userProfileRef, { username: username });
+
+            } catch (error) {
+                 authErrorEl.textContent = getFriendlyAuthError(error.code);
+            }
+        }
+
+        async function handleLogin() {
+            const username = usernameInput.value.trim().toLowerCase();
+            const password = passwordInput.value;
+            authErrorEl.textContent = '';
+            
+            if (!username || password.length < 6) {
+                authErrorEl.textContent = 'Please enter a valid username and password.';
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, `${username}@proteinpals.app`, password);
+            } catch (error) {
+                authErrorEl.textContent = getFriendlyAuthError(error.code);
+            }
+        }
+
+        function handleLogout() {
+            signOut(auth);
+        }
+
+        function getFriendlyAuthError(code) {
+             switch (code) {
+                case 'auth/wrong-password':
+                case 'auth/user-not-found':
+                case 'auth/invalid-credential':
+                    return 'Invalid username or password.';
+                case 'auth/weak-password':
+                    return 'Password should be at least 6 characters.';
+                case 'auth/invalid-email':
+                     return 'Invalid username format.';
+                default:
+                    return 'An error occurred. Please try again.';
+            }
+        }
+
+
+        // --- Firestore Functions ---
+        const getUserProfileRef = () => doc(db, `users`, userId);
+        const getUserGoalRef = () => doc(db, `users/${userId}/proteinData`, 'goal');
+        const getDailyLogsCollection = () => collection(db, `users/${userId}/proteinLogs`);
+        const getLogDocRef = (id) => doc(db, `users/${userId}/proteinLogs`, id);
+
+        async function loadUserData() {
+            if (!userId) return;
+            
+            const docSnap = await getDoc(getUserProfileRef());
+            if (docSnap.exists() && docSnap.data().username) {
+                const userData = docSnap.data();
+                greetingEl.textContent = `Welcome, ${userData.username}!`;
+                await loadUserGoal();
+                setupDataListeners();
+            }
+        }
+        
+        async function loadUserGoal() {
+            if (!userId) return;
+            const docSnap = await getDoc(getUserGoalRef());
+            if (docSnap.exists() && docSnap.data().goal) {
+                proteinGoal = docSnap.data().goal;
+            } else {
+                proteinGoal = 100;
+            }
+            proteinGoalInput.value = proteinGoal;
+            proteinGoalDisplayEl.textContent = proteinGoal;
+            updateDashboard();
+        }
+
+        async function saveUserGoal() {
+            const newGoal = parseInt(proteinGoalInput.value, 10);
+            if (!isNaN(newGoal) && newGoal > 0) {
+                proteinGoal = newGoal;
+                await setDoc(getUserGoalRef(), { goal: proteinGoal });
+                proteinGoalDisplayEl.textContent = proteinGoal;
+                updateDashboard();
+            }
+        }
+
+        async function addFoodLog(food) { await addDoc(getDailyLogsCollection(), food); }
+        async function updateFoodLog(id, updatedFood) { await updateDoc(getLogDocRef(id), updatedFood); }
+        async function deleteFoodLog(id) { await deleteDoc(getLogDocRef(id)); }
+
+        // --- UI Update & Logic Functions ---
+        function updateDashboard() {
+            const totalProtein = dailyLogs.reduce((sum, log) => sum + log.protein, 0);
+            proteinTodayEl.textContent = totalProtein;
+
+            const radius = 45;
+            const circumference = 2 * Math.PI * radius;
+            let progress = totalProtein / proteinGoal;
+            if (progress > 1) progress = 1;
+            const offset = circumference * (1 - progress);
+
+            progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressCircle.style.strokeDashoffset = offset;
+
+            progressCircle.classList.toggle('text-emerald-500', totalProtein >= proteinGoal);
+            progressCircle.classList.toggle('text-blue-500', totalProtein < proteinGoal);
+
+            if (totalProtein < proteinGoal) {
+                const quoteIndex = new Date(currentViewDate).getDay();
+                motivationQuoteEl.textContent = motivationQuotes[quoteIndex % motivationQuotes.length];
+                motivationQuoteEl.classList.remove('hidden');
+            } else {
+                motivationQuoteEl.classList.add('hidden');
+            }
+        }
+
+        function renderDailyLogs() {
+            dailyLogListEl.innerHTML = '';
+            if (dailyLogs.length === 0) {
+                emptyLogMessage.style.display = 'block';
+                return;
+            }
+            emptyLogMessage.style.display = 'none';
+
+            dailyLogs.sort((a,b) => b.timestamp.toMillis() - a.timestamp.toMillis()).forEach(log => {
+                const logEl = document.createElement('div');
+                logEl.className = 'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
+                logEl.innerHTML = `<div class="flex items-center"><div class="mr-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400">${log.mealType}</div><div><p class="font-medium text-gray-800 dark:text-gray-200">${log.name}</p><p class="text-sm text-gray-500 dark:text-gray-400">${log.quantity} - ${log.protein}g protein</p></div></div><div><button class="edit-btn p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400" data-id="${log.id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg></button><button class="delete-btn p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400" data-id="${log.id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div>`;
+                dailyLogListEl.appendChild(logEl);
+            });
+        }
+
+        function openEditModal(log) {
+            document.getElementById('edit-food-id').value = log.id;
+            document.getElementById('edit-food-name').value = log.name;
+            document.getElementById('edit-food-quantity').value = log.quantity;
+            document.getElementById('edit-food-protein').value = log.protein;
+            document.getElementById('edit-meal-type').value = log.mealType;
+            
+            const logDate = log.timestamp.toDate();
+            editFoodDateInput.value = toYYYYMMDD(logDate);
+
+            editModal.classList.remove('hidden');
+        }
+
+        function closeEditModal() { 
+            editModal.classList.add('hidden'); 
+            editFoodForm.reset(); 
+        }
+
+        function renderWeeklyChart(weeklyData) {
+            const ctx = document.getElementById('weekly-chart').getContext('2d');
+            const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const goalData = Array(7).fill(proteinGoal);
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+            const backgroundColors = weeklyData.map(val => val >= proteinGoal ? 'rgba(16, 185, 129, 0.6)' : 'rgba(59, 130, 246, 0.6)');
+            const borderColors = weeklyData.map(val => val >= proteinGoal ? 'rgba(16, 185, 129, 1)' : 'rgba(59, 130, 246, 1)');
+            if (weeklyChart) {
+                weeklyChart.data.datasets[0].data = weeklyData; 
+                weeklyChart.data.datasets[1].data = goalData; 
+                weeklyChart.data.datasets[0].backgroundColor = backgroundColors; 
+                weeklyChart.data.datasets[0].borderColor = borderColors; 
+                weeklyChart.options.scales.x.grid.color = gridColor; 
+                weeklyChart.options.scales.y.grid.color = gridColor; 
+                weeklyChart.options.scales.x.ticks.color = textColor; 
+                weeklyChart.options.scales.y.ticks.color = textColor; 
+                weeklyChart.options.scales.y.title.color = textColor; 
+                weeklyChart.update();
+            } else {
+                weeklyChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [ { label: 'Protein Intake (g)', data: weeklyData, backgroundColor: backgroundColors, borderColor: borderColors, borderWidth: 1, barPercentage: 0.6, categoryPercentage: 0.7, }, { label: 'Goal', data: goalData, type: 'line', borderColor: 'rgba(239, 68, 68, 0.7)', borderWidth: 2, fill: false, pointRadius: 0, tension: 0.1 } ] }, options: { responsive: true, scales: { x: { grid: { color: gridColor }, ticks: { color: textColor } }, y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor }, title: { display: true, text: 'Grams of Protein', color: textColor } } }, plugins: { legend: { display: false } } } });
+            }
+        }
+        function getStartAndEndOfWeek(baseDate) {
+            const date = new Date(baseDate);
+            const dayOfWeek = date.getDay(); 
+            const startDate = new Date(date); 
+            startDate.setDate(date.getDate() - dayOfWeek); 
+            startDate.setHours(0, 0, 0, 0); 
+            const endDate = new Date(startDate); 
+            endDate.setDate(startDate.getDate() + 6); 
+            endDate.setHours(23, 59, 59, 999); 
+            return { start: startDate, end: endDate };
+        }
+        function updateWeekDisplay(start, end) { 
+            const options = { month: 'short', day: 'numeric' }; 
+            weekDisplayEl.textContent = `${start.toLocaleDateString(undefined, options)} - ${end.toLocaleDateString(undefined, options)}`; 
+        }
+
+        // --- Event Listeners ---
+        function setupDataListeners() {
+            if (!userId) return;
+            cleanupListeners();
+
+            function setupDailyListener() {
+                const startOfDay = new Date(currentViewDate);
+                startOfDay.setHours(0, 0, 0, 0);
+                const endOfDay = new Date(currentViewDate);
+                endOfDay.setHours(23, 59, 59, 999);
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isToday = startOfDay.getTime() === today.getTime();
+                
+                dailyLogTitleEl.textContent = isToday ? "Today's Log" : `Logs for ${startOfDay.toLocaleDateString()}`;
+                dailyGoalTitleEl.textContent = isToday ? "Today's Goal" : `Goal for ${startOfDay.toLocaleDateString()}`;
+
+                const q = query(getDailyLogsCollection(), where("timestamp", ">=", startOfDay), where("timestamp", "<=", endOfDay));
+                const dailyUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                    dailyLogs = []; 
+                    querySnapshot.forEach((doc) => { dailyLogs.push({ id: doc.id, ...doc.data() }); });
+                    renderDailyLogs(); 
+                    updateDashboard();
+                });
+                unsubscribes.push(dailyUnsubscribe);
+            }
+
+            function setupWeeklyListener() {
+                const { start, end } = getStartAndEndOfWeek(currentViewDate);
+                updateWeekDisplay(start, end);
+
+                const q = query(getDailyLogsCollection(), where("timestamp", ">=", start), where("timestamp", "<=", end));
+                const weeklyUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                    const weeklyTotals = Array(7).fill(0);
+                    querySnapshot.forEach((doc) => {
+                        const log = doc.data(); 
+                        const dayIndex = log.timestamp.toDate().getDay();
+                        weeklyTotals[dayIndex] += log.protein;
+                    });
+                    renderWeeklyChart(weeklyTotals);
+                });
+                unsubscribes.push(weeklyUnsubscribe);
+            }
+            
+            setupDailyListener();
+            setupWeeklyListener();
+        }
+
+        function cleanupListeners() {
+            unsubscribes.forEach(unsub => unsub());
+            unsubscribes = [];
+        }
+        
+        // --- Theme Toggle Logic ---
+        function updateThemeIcons(isDarkMode) {
+             if (isDarkMode) { themeToggleDarkIcon.classList.remove('hidden'); themeToggleLightIcon.classList.add('hidden'); } 
+             else { themeToggleDarkIcon.classList.add('hidden'); themeToggleLightIcon.classList.remove('hidden'); }
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcons(isDark);
+            if(weeklyChart) {
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const textColor = isDark ? '#E5E7EB' : '#374151';
+                weeklyChart.options.scales.x.grid.color = gridColor;
+                weeklyChart.options.scales.y.grid.color = gridColor;
+                weeklyChart.options.scales.x.ticks.color = textColor;
+                weeklyChart.options.scales.y.ticks.color = textColor;
+                weeklyChart.options.scales.y.title.color = textColor;
+                weeklyChart.update();
+            }
+        });
+
+        // --- App Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+           registerBtn.addEventListener('click', handleRegister);
+           loginBtn.addEventListener('click', handleLogin);
+           logoutBtn.addEventListener('click', handleLogout);
+           
+           setGoalBtn.addEventListener('click', saveUserGoal);
+
+           viewDateInput.addEventListener('change', () => {
+                // The input gives a string like "2025-10-06". We need to add 'T00:00:00'
+                // to avoid timezone issues where it might be interpreted as the previous day.
+                currentViewDate = new Date(viewDateInput.value + 'T00:00:00');
+                foodDateInput.value = viewDateInput.value;
+                setupDataListeners();
+           });
+
+           prevWeekBtn.onclick = () => { currentViewDate.setDate(currentViewDate.getDate() - 7); viewDateInput.value = toYYYYMMDD(currentViewDate); viewDateInput.dispatchEvent(new Event('change')); };
+           nextWeekBtn.onclick = () => { currentViewDate.setDate(currentViewDate.getDate() + 7); viewDateInput.value = toYYYYMMDD(currentViewDate); viewDateInput.dispatchEvent(new Event('change')); };
+
+           foodForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const dateString = foodDateInput.value;
+                const logDate = new Date(dateString + 'T00:00:00');
+                
+                // Keep the time of day consistent for sorting, but on the chosen date
+                const now = new Date();
+                logDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
+                const newFood = { 
+                    name: document.getElementById('food-name').value, 
+                    quantity: document.getElementById('food-quantity').value, 
+                    protein: parseInt(document.getElementById('food-protein').value, 10), 
+                    mealType: document.getElementById('meal-type').value, 
+                    timestamp: Timestamp.fromDate(logDate) 
+                };
+                if(newFood.name && newFood.quantity && !isNaN(newFood.protein)){ 
+                    await addFoodLog(newFood); 
+                    foodForm.reset(); 
+                    foodDateInput.value = toYYYYMMDD(currentViewDate); // Reset date to current view
+                }
+            });
+
+            dailyLogListEl.addEventListener('click', (e) => {
+                const button = e.target.closest('button'); if (!button) return; const id = button.dataset.id; if (!id) return;
+                if (button.classList.contains('delete-btn')) { deleteFoodLog(id); }
+                if (button.classList.contains('edit-btn')) { 
+                    const logToEdit = dailyLogs.find(log => log.id === id); 
+                    if (logToEdit) openEditModal(logToEdit); 
+                }
+            });
+            
+            saveEditBtn.addEventListener('click', async () => {
+                const id = document.getElementById('edit-food-id').value;
+                const originalLog = dailyLogs.find(log => log.id === id);
+                if (!originalLog) return;
+                
+                const newDateString = editFoodDateInput.value;
+                const newDatePart = new Date(newDateString + 'T00:00:00');
+
+                // Preserve original time, but change the date
+                const finalDate = originalLog.timestamp.toDate();
+                finalDate.setFullYear(newDatePart.getFullYear(), newDatePart.getMonth(), newDatePart.getDate());
+
+                const updatedFood = { 
+                    name: document.getElementById('edit-food-name').value, 
+                    quantity: document.getElementById('edit-food-quantity').value, 
+                    protein: parseInt(document.getElementById('edit-food-protein').value, 10), 
+                    mealType: document.getElementById('edit-meal-type').value,
+                    timestamp: Timestamp.fromDate(finalDate)
+                };
+
+                if(id && updatedFood.name && updatedFood.quantity && !isNaN(updatedFood.protein)){ 
+                    await updateFoodLog(id, updatedFood); 
+                    closeEditModal(); 
+                }
+            });
+
+            cancelEditBtn.addEventListener('click', closeEditModal);
+
+           const isDarkMode = document.documentElement.classList.contains('dark');
+           updateThemeIcons(isDarkMode);
+        });
+    </script>
+</body>
+</html>
+
