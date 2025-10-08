@@ -76,6 +76,14 @@ In 2025 I decided to share it on GitHub. Even though the stack is intentionally 
 
 ---
 
+## Screenshots
+
+> Place this file in your repo at `assets/protein-pal-dashboard-dark.png` (or adjust the path below).
+
+![Protein Pal — Dashboard (Dark Mode)](assets/protein-pal-dashboard-dark.png)
+
+---
+
 ## Why Protein Pal?
 
 Nutrition apps can feel heavy. Protein Pal is intentionally light:
@@ -297,4 +305,4 @@ PRs welcome! Please open an issue to discuss significant changes. Keep the scope
 
 ## License
 
-MIT — do great things. 
+MIT — do great things.
