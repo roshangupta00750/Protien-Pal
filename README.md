@@ -2,6 +2,8 @@
 
 *A tiny companion with a big mission: help you hit your protein goal — every single day.*
 
+**Live app:** [https://roshangupta00750.github.io/Protien-Pal/](https://roshangupta00750.github.io/Protien-Pal/)
+
 <p align="center">
   <img src="https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS-blue" />
   <img src="https://img.shields.io/badge/backend-Firebase-orange" />
@@ -39,25 +41,38 @@ In 2025 I decided to share it on GitHub. Even though the stack is intentionally 
 ## Table of Contents
 
 1. [Why Protein Pal?](#why-protein-pal)
-2. [Features at a Glance](#features-at-a-glance)
-3. [How It Feels](#how-it-feels)
-4. [Architecture](#architecture)
-5. [Tech Stack](#tech-stack)
-6. [Getting Started](#getting-started)
+2. [Live App](#live-app)
+3. [Features at a Glance](#features-at-a-glance)
+4. [How It Feels](#how-it-feels)
+5. [Architecture](#architecture)
+6. [Tech Stack](#tech-stack)
+7. [Getting Started](#getting-started)
 
    * [Create a Firebase Project](#create-a-firebase-project)
    * [Enable Authentication](#enable-authentication)
    * [Create a Firestore Database](#create-a-firestore-database)
    * [Add Your Web App Config](#add-your-web-app-config)
    * [Set Firestore Security Rules](#set-firestore-security-rules)
-7. [Configure & Run](#configure--run)
-8. [Using the App](#using-the-app)
-9. [Data Model](#data-model)
-10. [Accessibility & Responsiveness](#accessibility--responsiveness)
-11. [Troubleshooting](#troubleshooting)
-12. [Roadmap](#roadmap)
-13. [Contributing](#contributing)
-14. [License](#license)
+8. [Configure & Run](#configure--run)
+9. [Using the App](#using-the-app)
+10. [Data Model](#data-model)
+11. [Accessibility & Responsiveness](#accessibility--responsiveness)
+12. [Troubleshooting](#troubleshooting)
+13. [Roadmap](#roadmap)
+14. [Contributing](#contributing)
+15. [License](#license)
+
+---
+
+## Why Protein Pal?
+
+---
+
+## Live App
+
+**Open the full app:** [https://roshangupta00750.github.io/Protien-Pal/](https://roshangupta00750.github.io/Protien-Pal/)
+
+> If the app doesn’t load, verify that your browser allows third‑party scripts and that Firebase quotas are not exceeded.
 
 ---
 
